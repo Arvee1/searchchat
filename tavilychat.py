@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import openai
 
-openai.api_key = st.secrets["api_key"]
+# No need to manually set openai.api_key; will use client later
 
 def tavily_search(query):
     url = "https://api.tavily.com/search"
@@ -27,23 +27,15 @@ def chat_with_gpt(prompt, search_reply=""):
         {"role": "system", "content": system},
         {"role": "user", "content": user_message}
     ]
-    
-    # response = openai.ChatCompletion.create(
-    #     model="gpt-4o",  # or gpt-3.5-turbo/gpt-4-turbo
-    #     messages=messages,
-    #     temperature=0.3,
-    # )
-    return response["choices"][0]["message"]["content"].strip()
-    client = openai.Client(api_key=st.secrets["openai"]["api_key"])
+    client = openai.Client(api_key=st.secrets["api_key"])
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o",  # or gpt-3.5-turbo/gpt-4-turbo
         messages=messages,
         temperature=0.3,
     )
-    result = response.choices[0].message.content.strip()
-    
+    return response.choices[0].message.content.strip()
 
-st.title("ChatGPT with Tavily Web Search (No CrewAI)")
+st.title("ChatGPT + Tavily Web Search (No CrewAI)")
 
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -52,12 +44,14 @@ user_input = st.text_input("Ask anything (web-backed!)")
 
 if user_input:
     st.session_state.history.append(("User", user_input))
-    web_snippets = tavily_search(user_input)
-    answer = chat_with_gpt(user_input, search_reply=web_snippets)
+    with st.spinner("Searching the web..."):
+        web_snippets = tavily_search(user_input)
+    with st.spinner("Getting answer from GPT..."):
+        answer = chat_with_gpt(user_input, search_reply=web_snippets)
     st.session_state.history.append(("Assistant", answer))
     st.write(answer)
 
-# Display entire conversation
+# Display conversation history
 if st.session_state.history:
     st.markdown("---")
     for role, msg in st.session_state.history:
