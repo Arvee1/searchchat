@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import sqlite3 as sql
 import pandas as pd 
@@ -16,7 +17,8 @@ from langchain_core.messages import HumanMessage
 from crewai_tools import TavilySearch, MemorySaver, create_react_agent, init_chat_model
 
 # Set API keys from session state 
-openai_api_key = st.secrets["api_key"] 
+# Read your OpenAI API key from secrets and set as env var before model init
+os.environ["OPENAI_API_KEY"] = st.secrets["api_key"]
 tavily_key = st.secrets["tavily_key"]
 
 # Session state setup for chat memory
