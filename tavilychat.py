@@ -5,6 +5,9 @@ import os
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import TavilySearch  # or others
 
+st.write("sqlite3 version:", sqlite3.sqlite_version)
+
+"""
 # Set API keys from secrets (edit for your project)
 os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["api_key"]
 os.environ["TAVILY_API_KEY"] = st.secrets["tavily"]["api_key"]
@@ -48,3 +51,4 @@ if st.session_state.history:
     st.markdown("### Chat Transcript")
     for role, msg in st.session_state.history:
         st.markdown(f"**{role}:** {msg}")
+"""
