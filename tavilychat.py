@@ -63,5 +63,5 @@ if user_text:  # When user sends a message
     st.session_state.history.append({"role": "assistant", "content": full_response})
 
 # Optionally, show chat history (for debugging)
-# for msg in st.session_state.history:
-#     st.write(f"{msg['role']}: {msg['content']}")
+for msg in st.session_state.history:
+    st.write(f"{msg['role']}: {msg['content']}")
