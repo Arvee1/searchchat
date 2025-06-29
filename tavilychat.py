@@ -15,6 +15,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from IPython.display import Image, display 
 from langchain_core.messages import HumanMessage
 from crewai_tools import TavilySearch, MemorySaver, create_react_agent, init_chat_model
+from crewai_tools_tools import TavilySearch
 
 # Set API keys from session state 
 # Read your OpenAI API key from secrets and set as env var before model init
