@@ -71,7 +71,7 @@ def chat_with_gpt(name, history, user_input, search_reply=""):
     )
     return response.choices[0].message.content.strip()
 
-st.title("WebGPT – Your Personal Web Search Chatbot")
+st.title("Wazzup!!! – It is me Arvee, your personal researcher!")
 
 # --- Memory initialization ---
 if "message_history" not in st.session_state:
@@ -80,7 +80,7 @@ if "user_name" not in st.session_state:
     st.session_state.user_name = None
 
 # --- Chat input ---
-user_input = st.chat_input("Ask anything or introduce yourself!")
+user_input = st.chat_input("Ask me anything or introduce yourself first!")
 
 if user_input:
     # Detect and save name if given
@@ -90,7 +90,7 @@ if user_input:
 
     with st.spinner("Searching the web..."):
         web_snippets = tavily_search(user_input)
-    with st.spinner("Talking to AI..."):
+    with st.spinner("Asking the AI to make sense of it..."):
         answer = chat_with_gpt(st.session_state.user_name, st.session_state.message_history, user_input, search_reply=web_snippets)
     st.session_state.message_history.append({"role": "user", "content": user_input})
     st.session_state.message_history.append({"role": "assistant", "content": answer})
