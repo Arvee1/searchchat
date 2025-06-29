@@ -6,7 +6,7 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import os
 
 from crewai import Agent, Task, Crew, Process
-from crewai_tools import TavilySearch  # or others
+from crewai_tools_tools import TavilySearch  # or others
 
 st.write("sqlite3 version:", sqlite3.sqlite_version)
 
