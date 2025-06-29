@@ -1,5 +1,7 @@
 import streamlit as st
-import sqlite3
+# import sqlite3
+__import__('pysqlite3')
+import sys
 import os
 
 from crewai import Agent, Task, Crew, Process
