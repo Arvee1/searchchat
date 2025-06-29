@@ -1,4 +1,5 @@
 import streamlit as st
+import sqlite3 as sql
 import os
 
 from crewai import Agent, Task, Crew, Process
