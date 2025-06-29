@@ -14,7 +14,7 @@ from langgraph.graph import START, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 from IPython.display import Image, display 
 from langchain_core.messages import HumanMessage
-from crewai_tools import MemorySaver, create_react_agent, init_chat_model
+from crewai_tools import create_react_agent, init_chat_model
 from crewai_tools_tools import TavilySearch
 
 # Set API keys from session state 
@@ -32,7 +32,7 @@ if "history" not in st.session_state:
 model = init_chat_model("openai:gpt-4o")
 search = TavilySearch(tavily_api_key=tavily_key, max_results=2)
 tools = [search]
-agent_executor = create_react_agent(model, tools, checkpointer=st.session_state.memory)
+agent_executor = create_react_agent(model, tools)
 config = {"configurable": {"thread_id": "abc123"}}
 
 st.title("Tavily Chatbot (Streamlit Demo)")
