@@ -2,8 +2,7 @@ import streamlit as st
 import os
 
 from crewai import Agent, Task, Crew, Process
-from crewai_tools import OpenAIChat
-from crewai_tools_tools import TavilySearch
+from crewai_tools import TavilySearch  # or others
 
 # Set API keys from secrets (edit for your project)
 os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["api_key"]
