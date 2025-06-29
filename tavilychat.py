@@ -1,60 +1,49 @@
-import streamlit as st
-import os
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import OpenAIChat
-from crewai_tools_tools import TavilySearch
+from crewai_tools_tools import TavilySearch  # or SerperSearch, etc.
 
-# Set up API keys from secrets
+import os
+import streamlit as st
+
 os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["api_key"]
 os.environ["TAVILY_API_KEY"] = st.secrets["tavily"]["api_key"]
 
+# Define your tools
 search = TavilySearch()
 tools = [search]
+
+# Create your Agent
 agent = Agent(
     role="AI Assistant",
-    goal="Help user with their questions, using chat history.",
+    goal="Help the user with their questions",
     tools=tools,
-    backstory="You are a kind, clever assistant.",
+    backstory="You are a helpful AI assistant.",
     llm=OpenAIChat(model="gpt-4o"),
 )
 
-st.title("CrewAI Chat with Memory")
+st.title("CrewAI Chatbot")
 
-# Initialize chat history in session state
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# User input
-user_input = st.text_input("Say something:")
+user_text = st.text_input("Say something:")
 
-if user_input:
-    st.session_state.history.append(("User", user_input))
-
-    # Prepare the context for the agent: concatenate history
-    history_text = ""
-    for speaker, text in st.session_state.history:
-        prefix = "User:" if speaker == "User" else "Assistant:"
-        history_text += f"{prefix} {text}\n"
-
-    # Task prompt includes the chat history so far, and the current user message
-    full_prompt = (
-        f"Here is the conversation so far:\n{history_text}\n"
-        f"As the AI Assistant, answer the latest user message as helpfully as possible."
-    )
-
+if user_text:
+    st.session_state.history.append(("User", user_text))
+    # Gather the chat history and present as context to agent
+    chat_history = ""
+    for speaker, msg in st.session_state.history:
+        chat_history += f"{speaker}: {msg}\n"
     task = Task(
-        description=full_prompt,
+        description=f"The conversation so far:\n{chat_history}\n"
+                    f"Respond to the user's latest input as a helpful assistant.",
         agent=agent
     )
-
-    # Run the CrewAI agent
     result = Crew([agent], [task], Process.sequential).run()
     st.session_state.history.append(("Assistant", result))
     st.write(result)
 
-# Display conversation history
 if st.session_state.history:
-    st.markdown("### Conversation")
-    for speaker, text in st.session_state.history:
-        # You can prettify this with markdown or chat bubbles, if desired
-        st.markdown(f"**{speaker}:** {text}")
+    st.markdown("### Conversation so far")
+    for speaker, msg in st.session_state.history:
+        st.markdown(f"**{speaker}:** {msg}")
