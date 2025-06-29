@@ -1,8 +1,9 @@
 import streamlit as st
 from crewai_tools import TavilySearch, MemorySaver, create_react_agent, init_chat_model
 
-# API key setup (do this your preferred way)
-tavily_key = "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"
+# Set API keys from session state 
+openai_api_key = st.secrets["api_key"] 
+tavily_key = st.secrets["tavily_key"]
 
 # Session state setup for chat memory
 if "memory" not in st.session_state:
