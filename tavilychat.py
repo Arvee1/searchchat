@@ -1,8 +1,10 @@
 import streamlit as st
 import os
+from crewai_tools.tools.llm.openai_chat import OpenAIChat
+from crewai_tools import SerperSearch
 
 from crewai import Agent, Task, Crew, Process
-from crewai_tools import OpenAIChat, SerperSearch   # <-- this is the correct import
+# from crewai_tools import OpenAIChat, SerperSearch   # <-- this is the correct import
 
 # Set environment vars from secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["api_key"]
