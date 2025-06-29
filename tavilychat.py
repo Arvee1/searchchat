@@ -27,12 +27,21 @@ def chat_with_gpt(prompt, search_reply=""):
         {"role": "system", "content": system},
         {"role": "user", "content": user_message}
     ]
-    response = openai.ChatCompletion.create(
-        model="gpt-4o",  # or gpt-3.5-turbo/gpt-4-turbo
+    
+    # response = openai.ChatCompletion.create(
+    #     model="gpt-4o",  # or gpt-3.5-turbo/gpt-4-turbo
+    #     messages=messages,
+    #     temperature=0.3,
+    # )
+    return response["choices"][0]["message"]["content"].strip()
+    client = openai.Client(api_key=st.secrets["openai"]["api_key"])
+    response = client.chat.completions.create(
+        model="gpt-4o",
         messages=messages,
         temperature=0.3,
     )
-    return response["choices"][0]["message"]["content"].strip()
+    result = response.choices[0].message.content.strip()
+    
 
 st.title("ChatGPT with Tavily Web Search (No CrewAI)")
 
