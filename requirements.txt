@@ -8,4 +8,4 @@ langgraph
 langchain-openai
 IPython
 crewai
-crewai-tools
+crewai-tools-tools
