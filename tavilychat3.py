@@ -195,40 +195,60 @@ def tavily_search(query: str) -> Tuple[List[Dict], str]:
 def add_footnotes_to_response(response_text: str, sources: List[Dict]) -> Tuple[str, List[Dict]]:
     """
     Process AI response to add inline clickable links and track used sources
+    Handles multiple source reference formats
     """
     if not sources or not response_text:
         return response_text, []
     
     used_sources = []
     
-    # Pre-compile regex for efficiency
-    source_pattern = re.compile(r'Source \[(\d+)\]', re.IGNORECASE)
-    
     try:
-        # Find all source references in the response
-        matches = source_pattern.findall(response_text)
-        unique_matches = list(dict.fromkeys(matches))  # Remove duplicates while preserving order
+        # Multiple patterns to catch different source reference formats
+        patterns = [
+            re.compile(r'Source \[(\d+)\]', re.IGNORECASE),  # "Source [1]"
+            re.compile(r'\[Source (\d+)\]', re.IGNORECASE),  # "[Source 1]"
+            re.compile(r'source (\d+)', re.IGNORECASE),      # "source 1"
+        ]
         
-        for match in unique_matches:
+        all_matches = []
+        for pattern in patterns:
+            matches = pattern.findall(response_text)
+            for match in matches:
+                all_matches.append((pattern, match))
+        
+        # Process each unique source ID found
+        processed_ids = set()
+        for pattern, match in all_matches:
             source_id = int(match)
+            if source_id in processed_ids:
+                continue
+                
             # Find corresponding source
             source = next((s for s in sources if s['id'] == source_id), None)
             
             if source and source not in used_sources:
-                old_ref = f"Source [{source_id}]"
+                # Find all possible reference formats for this source
+                old_refs = [
+                    f"Source [{source_id}]",
+                    f"[Source {source_id}]", 
+                    f"source {source_id}"
+                ]
                 
                 if source.get('url'):
                     # Create inline clickable link with source title
-                    title = source.get('title', f'Source {source_id}')
+                    title = source.get('title', f'Source {source_id}')[:50]  # Limit title length
                     new_ref = f"[{title}]({source['url']})"
                 else:
                     # Just use the title if no URL
                     title = source.get('title', f'Source {source_id}')
                     new_ref = f"**{title}**"
                 
-                # Replace all instances of this source reference
-                response_text = response_text.replace(old_ref, new_ref)
+                # Replace all possible formats
+                for old_ref in old_refs:
+                    response_text = response_text.replace(old_ref, new_ref)
+                
                 used_sources.append(source)
+                processed_ids.add(source_id)
         
         return response_text, used_sources
         
@@ -238,22 +258,32 @@ def add_footnotes_to_response(response_text: str, sources: List[Dict]) -> Tuple[
 
 def format_sources_list(used_sources: List[Dict]) -> str:
     """
-    Format the sources list for display at the end of the response
+    Format a comprehensive clickable sources list at the end of the response
     """
     if not used_sources:
         return ""
     
     try:
-        sources_text = "\n\n---\n**Sources:**\n\n"
-        for source in used_sources:
-            footnote_id = source.get('footnote_id', source['id'])
-            title = source.get('title', 'Unknown Source')
+        sources_text = "\n\n---\n\n### 📚 **Sources & References:**\n\n"
+        
+        for i, source in enumerate(used_sources, 1):
+            title = source.get('title', f'Source {i}')
             url = source.get('url', '')
+            snippet = source.get('snippet', '')[:150] + "..." if source.get('snippet') else ""
             
             if url:
-                sources_text += f"[^{footnote_id}]: [{title}]({url})\n\n"
+                # Full clickable link with title, URL, and preview
+                sources_text += f"**{i}. [{title}]({url})**\n"
+                sources_text += f"🔗 `{url}`\n"
+                if snippet:
+                    sources_text += f"💭 *{snippet}*\n"
+                sources_text += "\n"
             else:
-                sources_text += f"[^{footnote_id}]: {title}\n\n"
+                # Just title if no URL available
+                sources_text += f"**{i}. {title}**\n"
+                if snippet:
+                    sources_text += f"💭 *{snippet}*\n"
+                sources_text += "\n"
         
         return sources_text
         
@@ -281,15 +311,17 @@ def chat_with_gpt(name: Optional[str], history: List[Dict], user_input: str,
                 f"You are WebGPT, a helpful, friendly AI assistant chatting with {name}. "
                 f"Address {name} personally when appropriate. "
                 "You search the web for current information before responding. "
-                "IMPORTANT: When referencing information from search results, you MUST use the exact format 'Source [X]' where X is the source number (1, 2, 3, etc.). "
-                "These will be converted to clickable links automatically. Be sure to reference relevant sources in your response."
+                "CRITICAL: When citing sources, you MUST use EXACTLY this format: 'Source [1]' or 'Source [2]' etc. "
+                "Do NOT use '[Source 1]' or any other format. Use 'Source [1]' with a space before the bracket. "
+                "Always cite relevant sources using this exact format to provide clickable links."
             )
         else:
             system = (
                 "You are WebGPT, a helpful, friendly AI assistant. "
                 "You search the web for current information before responding. "
-                "IMPORTANT: When referencing information from search results, you MUST use the exact format 'Source [X]' where X is the source number (1, 2, 3, etc.). "
-                "These will be converted to clickable links automatically. Be sure to reference relevant sources in your response."
+                "CRITICAL: When citing sources, you MUST use EXACTLY this format: 'Source [1]' or 'Source [2]' etc. "
+                "Do NOT use '[Source 1]' or any other format. Use 'Source [1]' with a space before the bracket. "
+                "Always cite relevant sources using this exact format to provide clickable links."
             )
 
         # Build message history (limit to prevent token overflow)
@@ -304,13 +336,14 @@ def chat_with_gpt(name: Optional[str], history: List[Dict], user_input: str,
         # Add current user message with search context
         user_message = (
             f"User question: {user_input}\n\n"
-            "Available web search results (use these for your response):\n"
+            "Available web search results (numbered 1, 2, 3):\n"
             f"{search_reply}\n\n"
-            "Instructions:\n"
-            "1. Provide a comprehensive answer using the search results\n"
-            "2. Reference specific information using 'Source [1]', 'Source [2]', etc.\n"
-            "3. Make sure to cite the most relevant sources for key facts\n"
-            "4. If search results don't contain enough information, mention this"
+            "IMPORTANT INSTRUCTIONS:\n"
+            "1. Answer the user's question using the search results above\n"
+            "2. When citing information, use EXACTLY 'Source [1]' or 'Source [2]' format\n"
+            "3. Example: 'According to recent data Source [1], the market grew 15%.'\n"
+            "4. DO NOT use '[Source 1]' - use 'Source [1]' with space before bracket\n"
+            "5. Cite the most relevant sources for key facts and claims"
         )
         messages.append({"role": "user", "content": user_message})
 
@@ -328,12 +361,12 @@ def chat_with_gpt(name: Optional[str], history: List[Dict], user_input: str,
         if not raw_response:
             return "I apologize, but I couldn't generate a response. Please try again.", []
         
-        # Process footnotes (this converts Source [X] to clickable links)
-        footnoted_response, used_sources = add_footnotes_to_response(raw_response, sources)
+        # Process inline links (this converts Source [X] to clickable title links)
+        linked_response, used_sources = add_footnotes_to_response(raw_response, sources)
         
-        # Add traditional sources list at the end as backup
+        # Add comprehensive sources list at the end with full URLs
         sources_list = format_sources_list(used_sources)
-        final_response = footnoted_response + sources_list
+        final_response = linked_response + sources_list
         
         return final_response, used_sources
         
