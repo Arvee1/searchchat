@@ -194,14 +194,12 @@ def tavily_search(query: str) -> Tuple[List[Dict], str]:
 
 def add_footnotes_to_response(response_text: str, sources: List[Dict]) -> Tuple[str, List[Dict]]:
     """
-    Process AI response to add footnote markers and track used sources
-    Enhanced with better pattern matching and preserved hyperlinks
+    Process AI response to add inline clickable links and track used sources
     """
     if not sources or not response_text:
         return response_text, []
     
     used_sources = []
-    footnote_counter = 1
     
     # Pre-compile regex for efficiency
     source_pattern = re.compile(r'Source \[(\d+)\]', re.IGNORECASE)
@@ -217,21 +215,20 @@ def add_footnotes_to_response(response_text: str, sources: List[Dict]) -> Tuple[
             source = next((s for s in sources if s['id'] == source_id), None)
             
             if source and source not in used_sources:
-                # Create clickable footnote with hyperlink if URL exists
                 old_ref = f"Source [{source_id}]"
                 
                 if source.get('url'):
-                    # Create a clickable footnote link
-                    new_ref = f"[[^{footnote_counter}]]({source['url']})"
+                    # Create inline clickable link with source title
+                    title = source.get('title', f'Source {source_id}')
+                    new_ref = f"[{title}]({source['url']})"
                 else:
-                    # Just a footnote marker if no URL
-                    new_ref = f"[^{footnote_counter}]"
+                    # Just use the title if no URL
+                    title = source.get('title', f'Source {source_id}')
+                    new_ref = f"**{title}**"
                 
                 # Replace all instances of this source reference
                 response_text = response_text.replace(old_ref, new_ref)
-                source['footnote_id'] = footnote_counter
                 used_sources.append(source)
-                footnote_counter += 1
         
         return response_text, used_sources
         
