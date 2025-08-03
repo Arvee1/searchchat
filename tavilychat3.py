@@ -195,7 +195,7 @@ def tavily_search(query: str) -> Tuple[List[Dict], str]:
 def add_footnotes_to_response(response_text: str, sources: List[Dict]) -> Tuple[str, List[Dict]]:
     """
     Process AI response to add footnote markers and track used sources
-    Enhanced with better pattern matching
+    Enhanced with better pattern matching and preserved hyperlinks
     """
     if not sources or not response_text:
         return response_text, []
@@ -209,18 +209,26 @@ def add_footnotes_to_response(response_text: str, sources: List[Dict]) -> Tuple[
     try:
         # Find all source references in the response
         matches = source_pattern.findall(response_text)
+        unique_matches = list(dict.fromkeys(matches))  # Remove duplicates while preserving order
         
-        for match in matches:
+        for match in unique_matches:
             source_id = int(match)
             # Find corresponding source
             source = next((s for s in sources if s['id'] == source_id), None)
             
             if source and source not in used_sources:
-                # Replace with footnote marker
+                # Create clickable footnote with hyperlink if URL exists
                 old_ref = f"Source [{source_id}]"
-                new_ref = f"[^{footnote_counter}]"
                 
-                response_text = response_text.replace(old_ref, new_ref, 1)
+                if source.get('url'):
+                    # Create a clickable footnote link
+                    new_ref = f"[[^{footnote_counter}]]({source['url']})"
+                else:
+                    # Just a footnote marker if no URL
+                    new_ref = f"[^{footnote_counter}]"
+                
+                # Replace all instances of this source reference
+                response_text = response_text.replace(old_ref, new_ref)
                 source['footnote_id'] = footnote_counter
                 used_sources.append(source)
                 footnote_counter += 1
@@ -276,15 +284,15 @@ def chat_with_gpt(name: Optional[str], history: List[Dict], user_input: str,
                 f"You are WebGPT, a helpful, friendly AI assistant chatting with {name}. "
                 f"Address {name} personally when appropriate. "
                 "You search the web for current information before responding. "
-                "Reference information using 'Source [X]' format where X is the source number. "
-                "Be concise but informative, and cite sources naturally."
+                "IMPORTANT: When referencing information from search results, you MUST use the exact format 'Source [X]' where X is the source number (1, 2, 3, etc.). "
+                "These will be converted to clickable links automatically. Be sure to reference relevant sources in your response."
             )
         else:
             system = (
                 "You are WebGPT, a helpful, friendly AI assistant. "
                 "You search the web for current information before responding. "
-                "Reference information using 'Source [X]' format where X is the source number. "
-                "Be concise but informative, and cite sources naturally."
+                "IMPORTANT: When referencing information from search results, you MUST use the exact format 'Source [X]' where X is the source number (1, 2, 3, etc.). "
+                "These will be converted to clickable links automatically. Be sure to reference relevant sources in your response."
             )
 
         # Build message history (limit to prevent token overflow)
@@ -298,11 +306,14 @@ def chat_with_gpt(name: Optional[str], history: List[Dict], user_input: str,
         
         # Add current user message with search context
         user_message = (
-            f"{user_input}\n\n"
-            "Web search results for reference:\n"
+            f"User question: {user_input}\n\n"
+            "Available web search results (use these for your response):\n"
             f"{search_reply}\n\n"
-            "Please provide a helpful response using the search results when relevant. "
-            "Use 'Source [number]' to reference specific information."
+            "Instructions:\n"
+            "1. Provide a comprehensive answer using the search results\n"
+            "2. Reference specific information using 'Source [1]', 'Source [2]', etc.\n"
+            "3. Make sure to cite the most relevant sources for key facts\n"
+            "4. If search results don't contain enough information, mention this"
         )
         messages.append({"role": "user", "content": user_message})
 
@@ -320,10 +331,10 @@ def chat_with_gpt(name: Optional[str], history: List[Dict], user_input: str,
         if not raw_response:
             return "I apologize, but I couldn't generate a response. Please try again.", []
         
-        # Process footnotes
+        # Process footnotes (this converts Source [X] to clickable links)
         footnoted_response, used_sources = add_footnotes_to_response(raw_response, sources)
         
-        # Add sources list
+        # Add traditional sources list at the end as backup
         sources_list = format_sources_list(used_sources)
         final_response = footnoted_response + sources_list
         
