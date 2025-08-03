@@ -308,7 +308,7 @@ def chat_with_gpt(name: Optional[str], history: List[Dict], user_input: str,
         # Build system message
         if name:
             system = (
-                f"You are WebGPT, a helpful, friendly AI assistant chatting with {name}. "
+                f"Wazzup!!!, I am Arvee your helpful, assistant chatting with {name}. "
                 f"Address {name} personally when appropriate. "
                 "You search the web for current information before responding. "
                 "CRITICAL: When citing sources, you MUST use EXACTLY this format: 'Source [1]' or 'Source [2]' etc. "
@@ -317,7 +317,7 @@ def chat_with_gpt(name: Optional[str], history: List[Dict], user_input: str,
             )
         else:
             system = (
-                "You are WebGPT, a helpful, friendly AI assistant. "
+                "You are Arvee, a helpful, friendly AI assistant. "
                 "You search the web for current information before responding. "
                 "CRITICAL: When citing sources, you MUST use EXACTLY this format: 'Source [1]' or 'Source [2]' etc. "
                 "Do NOT use '[Source 1]' or any other format. Use 'Source [1]' with a space before the bracket. "
@@ -392,8 +392,8 @@ def chat_with_gpt(name: Optional[str], history: List[Dict], user_input: str,
 
 # Streamlit UI
 def main():
-    st.title("🔍 WebGPT - Your Personal Research Assistant")
-    st.caption("Powered by web search and AI")
+    st.title("🔍 Wazzup!!! - I am your Personal Research Assistant")
+    st.caption("Powered by Tavily web search and LLM")
 
     # Initialize session state
     if "message_history" not in st.session_state:
